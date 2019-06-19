@@ -1,8 +1,21 @@
 const Koa = require('koa');
+const path = require('path');
+const debug = require('debug')('koa:index');
 
 const mockjs = require('./middleware/mockjs');
 const upstream = require('./middleware/upstream');
 
+const getConfig = (publicRoot) => {
+  try {
+    const configPath = path.resolve(publicRoot, 'mock.config.js');
+    delete require.cache[configPath];
+    const config = require(configPath);
+    return config;
+  } catch (e) {
+    debug('getConfig:', e);
+    return {};
+  }
+};
 /**
  * @param {object} options
  * @param {string} options.publicRoot the root directory to serve static assets
@@ -18,7 +31,7 @@ module.exports = (options) => {
   } = options;
   
   const app = new Koa();
-
+  app.context.config = getConfig(publicRoot);
   app.use(mockjs(publicRoot));
   app.use(upstream(upstreamDomain));
 

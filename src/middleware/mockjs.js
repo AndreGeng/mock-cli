@@ -4,56 +4,56 @@ const mockjs = require('mockjs');
 const {
   promisify,
 } = require('util');
-const minimatch = require('minimatch');
 const debug = require('debug')('middleware:mockjs');
 
 const {
   sleep,
+  globMatch,
 } = require('../utils');
 
 const resolveP = promisify(resolve);
 
-const getResFromJs = async (ctx, content) => {
-  let res;
-  if (typeof content.data === 'function') {
-    res = mockjs.mock(content.data(ctx));
-  } else {
-    res = mockjs.mock(content.data);
+const getRedirectMap = (rewrite) => {
+  const result = {};
+  if (rewrite) {
+    Object.keys(rewrite)
+      .forEach((key) => {
+        const value = rewrite[key];
+        if (typeof value === 'object') {
+          result[key] = value['path'];
+        } else if (value === 'string') {
+          result[key] = value;
+        } else {
+          debug('globalConfig rewrite format error', rewrite);
+        }
+      });
   }
-  if (content.config) {
-    const {
-      timeout,
-    } = content.config;
-    if (typeof timeout !== 'undefined') {
-      await sleep(timeout);
-      return res;
-    }
+  return result;
+};
+const getResFromJs = async (ctx, content, globalConfig = {}) => {
+  let res;
+  if (typeof content === 'function') {
+    res = mockjs.mock(content(ctx));
+  } else if (typeof content.res === 'function') {
+    res = mockjs.mock(content.res(ctx));
+  } else {
+    res = mockjs.mock(content.res);
+  }
+  const config = Object.assign({}, globalConfig, content.config);
+  const {
+    timeout = 0,
+  } = config;
+  if (typeof timeout !== 'undefined') {
+    await sleep(timeout);
+    return res;
   }
   return res;
 };
 
-const getRedirectConfig = (publicRoot) => {
+const getMockFile = async (publicRoot, ctx, redirectMap = {}) => {
   try {
-    const redirectConfigPath = path.resolve(publicRoot, 'redirect.config.js');
-    delete require.cache[redirectConfigPath];
-    const redirectConfig = require(redirectConfigPath);
-    return redirectConfig;
-  } catch (e) {
-    return {};
-  }
-};
-
-const getMockFile = async (publicRoot, ctx) => {
-  try {
-    let relativePath = `.${ctx.path}`;
-    const redirectConfig = getRedirectConfig(publicRoot);
-    for (const [key, value] of Object.entries(redirectConfig)) {
-      if (minimatch(ctx.path, key)) {
-        relativePath = value;
-        break;
-      }
-    }
-
+    const match = globMatch(ctx.path, redirectMap);
+    let relativePath = match || `.${ctx.path}`;
     const fileAbs = await resolveP(relativePath, {
       basedir: publicRoot,
       extensions: ['.js', '.json'],
@@ -66,18 +66,22 @@ const getMockFile = async (publicRoot, ctx) => {
 };
 
 module.exports = (publicRoot) => async (ctx, next) => {
-  const fileAbs = await getMockFile(publicRoot, ctx);
+  const config = ctx.config;
+  const { rewrite, ...others } = config;
+  const fileAbs = await getMockFile(publicRoot, ctx, getRedirectMap(rewrite));
   if (fileAbs) {
     const extname = path.extname(fileAbs);
     delete require.cache[fileAbs];
     const content = require(fileAbs);
     // 对于json文件直接返回结果
     if (extname === '.json') {
+      const timeout = config.timeout || 0;
+      await sleep(timeout);
       ctx.body = mockjs.mock(content);
       return;
     // 对于js文件，获取配置并返回结果
     } else if (extname === '.js') {
-      const res = await getResFromJs(ctx, content);
+      const res = await getResFromJs(ctx, content, { ...others });
       ctx.body = res;
     }
     return;
