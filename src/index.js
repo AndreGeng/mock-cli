@@ -1,38 +1,43 @@
 const Koa = require('koa');
 const path = require('path');
+const fs = require('fs');
+const chokidar = require('chokidar');
 const debug = require('debug')('koa:index');
 
-const mockjs = require('./middleware/mockjs');
+const mockService = require('./middleware/mock-service');
 const upstream = require('./middleware/upstream');
-
-const getConfig = (publicRoot) => {
-  try {
-    const configPath = path.resolve(publicRoot, 'mock.config.js');
-    delete require.cache[configPath];
-    const config = require(configPath);
-    return config;
-  } catch (e) {
-    debug('getConfig:', e);
-    return {};
-  }
+const loadMockConfig = (app, mockRoot) => {
+  const mockConfig = path.resolve(mockRoot, './mock.config.js');
+  delete require.cache[mockConfig];
+  app.context.mockConf = require(mockConfig);
+  chokidar.watch(mockConfig)
+    .on('all', () => {
+      delete require.cache[mockConfig];
+      app.context.mockConf = require(mockConfig);
+    });
 };
+
 /**
  * @param {object} options
- * @param {string} options.publicRoot the root directory to serve static assets
+ * @param {string} options.mockRoot the root directory to serve static assets
  * @param {number} options.port server start port
+ * @param {number} options.timeout service respond time
  * @param {string} options.upstreamDomain the domain to forward the request to when no matching mock data is found
  *
  */
 module.exports = (options) => {
   const {
-    publicRoot,
+    mockRoot,
     port,
+    timeout,
     upstreamDomain,
   } = options;
   
   const app = new Koa();
-  app.context.config = getConfig(publicRoot);
-  app.use(mockjs(publicRoot));
+  // context注入mockConf对象
+  loadMockConfig(app, mockRoot);
+  app.context.appConfig = options;
+  app.use(mockService(mockRoot));
   app.use(upstream(upstreamDomain));
 
   app.listen(port, () => {
