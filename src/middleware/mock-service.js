@@ -4,7 +4,7 @@ const mockjs = require('mockjs');
 const {
   promisify,
 } = require('util');
-const minimatch = require('minimatch');
+const pathMatch = require('path-match')();
 const debug = require('debug')('middleware:mockjs');
 
 const {
@@ -26,7 +26,19 @@ const getResFromJs = async (ctx, content) => {
 const getMockObj = (mockRoot, ctx) => {
   let mockObj = null;
   for (const [key, value] of Object.entries(ctx.mockConf)) {
-    if (minimatch(ctx.path, key)) {
+    let [method, url] = key.split(/\s+/);
+    if (!url) {
+      url = method; 
+      method = 'all';
+    }
+    if (method !== 'all'
+    && method !== ctx.method.toLowerCase()) {
+      continue;
+    }
+    const routeMatcher = pathMatch(url);
+    const params = routeMatcher(ctx.path);
+    if (params) {
+      ctx.params = params;
       if (typeof value === 'object') {
         mockObj = value;
       } else if (typeof value === 'string') {

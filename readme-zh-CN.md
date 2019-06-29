@@ -59,14 +59,14 @@ ps: 映射规则的优先级要高于基于文件路径的匹配。
 ```
 module.exports = {
   '/ajax/exact-match': './exact-match.json',
-  '/ajax/*': {
+  'post /ajax/:name': {
     path: './test.js',
-    timeout: 5000,
+    timeout: 1000,
     upstream: 'http://localhost:4000',
   },
 };
 ```
-mock服务的匹配规则基于[minimatch](https://github.com/isaacs/minimatch).
+mock服务的匹配规则基于[path-to-regexp](https://github.com/component/path-to-regexp), 对于匹配到的path, url中的参数，例如：:name，可以通过ctx.params来读取。
 配置文件除了用于定义mock服务映射规则。还可以对匹配到的mock服务进行一定程度的配置，目前支持两个配置参数:
 timeout: 用于指定mock服务的响应时间
 upstream: 用于当path指定的文件不存在时，请求被forward到的域名

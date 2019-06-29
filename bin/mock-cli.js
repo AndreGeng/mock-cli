@@ -31,7 +31,7 @@ const genDefaultMockDir = () => {
   const initConfigFile = () => {
     shell.echo(`module.exports = {
     '/ajax/exact-match': './exact-match.json',
-    '/ajax/*': {
+    'post /ajax/:name': {
       path: './test.js',
       timeout: 1000,
       upstream: 'http://localhost:4000',
@@ -43,7 +43,7 @@ const genDefaultMockDir = () => {
     }, null, 2)).to(path.resolve(mockRoot, 'exact-match.json'));
     shell.echo(`module.exports = (ctx) => {
     return {
-      'name|2-7': ctx.query.name || '*',
+      'name|2-7': ctx.query.name || ctx.params.name || '*',
     };
 };
     `).to(path.resolve(mockRoot, 'test.js'));
