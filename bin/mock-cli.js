@@ -17,36 +17,39 @@ program
   .command('start')
   .description('start mock server')
   .action(() => {
+    const mockRoot = path.resolve(process.cwd(), program.root || 'mock'); 
     createServer({
       port: program.port || 3000,
       timeout: program.timeout || 0,
-      mockRoot: path.resolve(process.cwd(), program.root || 'mock'),
+      mockRoot,
       upstreamDomain: program.upstreamDomain,
     });
   });
 
 const genDefaultMockDir = () => {
+  const mockRoot = path.resolve(process.cwd(), program.root || 'mock'); 
   const initConfigFile = () => {
     shell.echo(`module.exports = {
     '/ajax/exact-match': './exact-match.json',
     '/ajax/*': {
       path: './test.js',
+      timeout: 1000,
       upstream: 'http://localhost:4000',
     },
 };
-    `).to('mock/mock.config.js');
+    `).to(path.resolve(mockRoot, 'mock.config.js'));
     shell.echo(JSON.stringify({
       'name|2-7': 'test',
-    }, null, 2)).to('mock/exact-match.json');
+    }, null, 2)).to(path.resolve(mockRoot, 'exact-match.json'));
     shell.echo(`module.exports = (ctx) => {
     return {
       'name|2-7': ctx.query.name || '*',
     };
 };
-    `).to('mock/test.js');
+    `).to(path.resolve(mockRoot, 'test.js'));
   };
   try {
-    shell.mkdir('-p', 'mock');
+    shell.mkdir('-p', mockRoot);
     initConfigFile();
   } catch(e) {
     console.log(e);

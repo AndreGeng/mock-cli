@@ -2,6 +2,7 @@ const Koa = require('koa');
 const path = require('path');
 const fs = require('fs');
 const chokidar = require('chokidar');
+const bodyparser = require('koa-bodyparser');
 const debug = require('debug')('koa:index');
 
 const mockService = require('./middleware/mock-service');
@@ -37,6 +38,7 @@ module.exports = (options) => {
   // context注入mockConf对象
   loadMockConfig(app, mockRoot);
   app.context.appConfig = options;
+  app.use(bodyparser());
   app.use(mockService(mockRoot));
   app.use(upstream(upstreamDomain));
 

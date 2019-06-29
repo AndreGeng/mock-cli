@@ -4,7 +4,7 @@ mock-cli
 ## 背景
 随着前后端的分离，前端需要一种简单的方法在联调之前，确定自身代码的正确性。前端需要mock后端的服务进行测试，采用mock服务有以下一些好处：
 1. 前端不再依赖后端接口，可以先行测试，能使后期的联调效率更加高效。
-2. 随着后端业务逻辑复杂化，一些边界case的模拟，可能涉及多方，有较高的沟通成本。mock测试可以更低成本的完成前端测试。
+2. 方便一些边界case的模拟，降低沟通成本。mock测试可以更低成本的完成前端测试。
 
 ## 方案
 由于目前大多数项目是前后端分离的，mock-cli暂不考虑模板的渲染，目前只提供后端接口的mock.
@@ -13,11 +13,12 @@ mock-cli
 mock-cli是一个基于node的命令行工具，当运行它时，它启动一个基于koa的server来提供mock服务。
 ### 命令行参数
 ```
-Usage: mock [options] [command]
+Usage: mock-cli [options] [command]
 
 Options:
   -v, --version                           output the version number
   -p, --port <port>                       mock server port, default:3000
+  -t, --timeout <timemout>                mock service response time, default: 0
   -r, --root <root dir>                   mock server serve dir, default: "./mock"
   -u, --upstream-domain <upstreamDomain>  mock server upstream domain
   -h, --help                              output usage information
@@ -42,23 +43,14 @@ mock start
 
 `mock init -y`在项目根目录下新建了'mock'文件夹，
 `mock start` 启动了mock服务。 
-当请求http://localhost:3000/ajax/foo, 这个地址时，mock server会把mock/ajax/foo.json的内容返回
+当请求http://localhost:3000/ajax/foo, 这个地址时，mock server会把mock/test.js的内容返回
 
-#### mock文件
-
-mock文件支持两种格式: json和js
-  * json的内容会被直接返回
-  * js文件的格式如下
-  ```
-  module.exports = {
-    config: {
-      timeout: 100,
-    },
-    res: {
-    }
-  }
-  ```
-  其中config中可以设置接口的超时时间，res的值可以是要返回的json数据，或者是一个返回json数据的函数。当res的值是一个函数时，koa的context会被传入，用户可以根据request的具体内容返回mock数据
+#### mock服务匹配规则
+mock服务匹配有两种方式
+1. 基于mock文件路径。
+  如果mock文件的路径与请求的path匹配，mock文件会被返回。例如在mock文件夹下有mock/ajax/test.json文件, 当用户请求/ajax/test路径时，mock/ajax/test.json文件会被返回。
+2. 基于mock.config.js映射规则。mock.config.js文件的格式如下
+ps: 映射规则的优先级要高于基于文件路径的匹配。
 
 #### 配置文件
 
@@ -66,30 +58,38 @@ mock文件支持两种格式: json和js
 配置样例如下:
 ```
 module.exports = {
-  timeout: 100,
-  rewrite: {
-    '/m/*': {
-      path: './test.json',
-      upstream: 'http://localhost:4000',
-    },
+  '/ajax/exact-match': './exact-match.json',
+  '/ajax/*': {
+    path: './test.js',
+    timeout: 5000,
+    upstream: 'http://localhost:4000',
   },
 };
 ```
-timeout为全局超时设置，可以被接口级的超时覆盖。
-rewrite可以定义重写规则，mock server会把匹配到的path返回指定的文件，像上面的配置当请求/m/test path时，mock/test.json的数据会被返回
-upstream是用于指定，匹配不到mock文件时，接口被forward到哪个域名。
+mock服务的匹配规则基于[minimatch](https://github.com/isaacs/minimatch).
+配置文件除了用于定义mock服务映射规则。还可以对匹配到的mock服务进行一定程度的配置，目前支持两个配置参数:
+timeout: 用于指定mock服务的响应时间
+upstream: 用于当path指定的文件不存在时，请求被forward到的域名
 ps:
-1. 如果所有接口的forward域名都是一样的，可以在命令行通过-u参数来指定。e.g. `mock start -u 'http://server'`
-2. 配置文件只需要指定重写规则时，可以采用如下简写方式
-```
-module.exports = {
-  timeout: 100,
-  rewrite: {
-    '/m/*': './test.json',
-  },
+ 如果所有接口的forward域名都是一样的，可以在命令行通过-u参数来指定。e.g. `mock start -u 'http://server'`
+
+#### mock文件格式
+mock文件支持两种格式: json和js
+  * json的内容会被直接返回
+  * js文件的格式如下
+  ```
+module.exports = (ctx) => {
+    return {
+      'name|2-7': ctx.query.name || '*',
+    };
 };
-```
+    
+  ```
+ps:
+1. mock文件返回的json值遵循[mockjs](https://github.com/nuysoft/Mock/wiki)的数据格式，方便编写随机的mock数据。
+2. exports的值是一个函数时，koa的context会被传入，用户可以根据request的具体内容返回mock数据, 或者用于修改mock返回的header信息，etc.
+
 
 ### 代理
-最后就可以通过charles/fiddler之类的工具来把想要mock的接口, 代理到mock了。
+最后就可以通过charles/fiddler之类的工具来把想要mock的接口, 代理到mock server了。
 
