@@ -3,22 +3,30 @@ const debug = require('debug')('middleware:upstream');
 
 const {
   globMatch,
+  isAbsoluteUrl,
 } = require('../utils');
 
 module.exports = (upstreamDomain) => async (ctx, next) => {
   const config = ctx.appConfig;
   const mockObj = ctx.mockObj;
   const targetDomain = (mockObj && mockObj.upstream) || upstreamDomain;
+  const requestHeaders = Object.assign({}, ctx.headers);
+  delete requestHeaders.host;
+  delete requestHeaders['content-length'];
+  debug('request headers', requestHeaders);
+  debug('request body', ctx.request.body);
+  let targetUrl;
+  
   if (targetDomain) {
-    const requestHeaders = Object.assign({}, ctx.headers);
-    delete requestHeaders.host;
-    delete requestHeaders['content-length'];
-    debug('request headers', requestHeaders);
-    debug('request body', ctx.request.body);
+    targetUrl = `${targetDomain}${ctx.path}?${ctx.querystring}`;
+  } else if (isAbsoluteUrl(ctx.originalUrl)) {
+    targetUrl = ctx.originalUrl;
+  }
+  if (targetUrl) {
     return axios({
       method: ctx.method,
       headers: requestHeaders,
-      url: `${targetDomain}${ctx.url}`,
+      url: targetUrl,
       data: ctx.request.body,
     })
       .then((res) => {
