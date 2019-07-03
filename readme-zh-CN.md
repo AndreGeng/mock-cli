@@ -13,7 +13,7 @@ mock-cli
 mock-cli是一个基于node的命令行工具，当运行它时，它启动一个基于koa的server来提供mock服务。
 ### 命令行参数
 ```
-Usage: mock-cli [options] [command]
+Usage: mock [options] [command]
 
 Options:
   -v, --version                           output the version number
@@ -26,6 +26,7 @@ Options:
 Commands:
   start                                   start mock server
   init [options]                          init mock directory
+  gen-ca                                  generate root CA
 ```
 ps: upstream是当所有mock文件都匹配不到时，请求会被forward到upstream域名
 
@@ -47,9 +48,9 @@ mock start
 
 #### mock服务匹配规则
 mock服务匹配有两种方式
-1. 基于mock文件路径。
+1. 基于mock.config.js映射规则。mock.config.js文件的格式如下
+2. 基于mock文件路径。
   如果mock文件的路径与请求的path匹配，mock文件会被返回。例如在mock文件夹下有mock/ajax/test.json文件, 当用户请求/ajax/test路径时，mock/ajax/test.json文件会被返回。
-2. 基于mock.config.js映射规则。mock.config.js文件的格式如下
 ps: 映射规则的优先级要高于基于文件路径的匹配。
 
 #### 配置文件
@@ -93,3 +94,11 @@ ps:
 ### 代理
 最后就可以通过charles/fiddler之类的工具来把想要mock的接口, 代理到mock server了。
 
+### https服务mock
+如果需要mock https服务，需要安装rootCA证书。
+1. 在命令行中，运行下面的命令
+```
+mock gen-ca
+open ~/.mock-cli/certs
+```
+2. 安装并信任certs文件夹下面的rootCA.crt。
