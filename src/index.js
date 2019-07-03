@@ -1,12 +1,13 @@
 const Koa = require('koa');
 const path = require('path');
-const fs = require('fs');
 const chokidar = require('chokidar');
 const bodyparser = require('koa-bodyparser');
-const debug = require('debug')('koa:index');
+const http = require('http');
 
 const mockService = require('./middleware/mock-service');
 const upstream = require('./middleware/upstream');
+const connectHandler = require('./connect-handler');
+
 const loadMockConfig = (app, mockRoot) => {
   const mockConfig = path.resolve(mockRoot, './mock.config.js');
   delete require.cache[mockConfig];
@@ -17,6 +18,12 @@ const loadMockConfig = (app, mockRoot) => {
       app.context.mockConf = require(mockConfig);
     });
 };
+
+
+
+process.on('uncaughtException', function (err) {
+  console.log(err);
+});
 
 /**
  * @param {object} options
@@ -30,7 +37,6 @@ module.exports = (options) => {
   const {
     mockRoot,
     port,
-    timeout,
     upstreamDomain,
   } = options;
   
@@ -41,9 +47,15 @@ module.exports = (options) => {
   app.use(bodyparser());
   app.use(mockService(mockRoot));
   app.use(upstream(upstreamDomain));
-
-  app.listen(port, () => {
-    console.log(`server started on http://localhost:${port}`);
-  });
+  const listeningReporter = function() {
+    const {port, address} = this.address();
+    const protocol = this.addContext ? 'https' : 'http';
+    console.log(`server started on ${protocol}://${address}:${port}`);
+  };
+  const httpServer = http.createServer(app.callback())
+    .listen(port, listeningReporter);
+  // 处理https -> http的场景
+  httpServer.on('connect', connectHandler(app.callback()));
   return app;
 };
+

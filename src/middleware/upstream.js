@@ -1,28 +1,28 @@
 const axios = require('axios');
-const debug = require('debug')('middleware:upstream');
+const debug = require('debug')('mockCli:upstream');
 
 const {
-  globMatch,
   isAbsoluteUrl,
 } = require('../utils');
 
 module.exports = (upstreamDomain) => async (ctx, next) => {
-  const config = ctx.appConfig;
   const mockObj = ctx.mockObj;
   const targetDomain = (mockObj && mockObj.upstream) || upstreamDomain;
   const requestHeaders = Object.assign({}, ctx.headers);
   delete requestHeaders.host;
   delete requestHeaders['content-length'];
-  debug('request headers', requestHeaders);
-  debug('request body', ctx.request.body);
+  debug('request headers: %o', requestHeaders);
+  debug('request body: %O', ctx.request.body);
   let targetUrl;
   
   if (targetDomain) {
     targetUrl = `${targetDomain}${ctx.path}?${ctx.querystring}`;
-  } else if (isAbsoluteUrl(ctx.originalUrl)) {
-    targetUrl = ctx.originalUrl;
+  } else if (ctx.host.indexOf('localhost') === -1 
+  && ctx.host.indexOf('127.0.0.1') === -1) {
+    targetUrl = `${ctx.protocol}://${ctx.host}${ctx.path}?${ctx.querystring}`;
   }
-  if (targetUrl) {
+  if (targetUrl && 
+    isAbsoluteUrl(targetUrl)) {
     return axios({
       method: ctx.method,
       headers: requestHeaders,

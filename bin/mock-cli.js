@@ -5,6 +5,9 @@ const shell = require('shelljs');
 
 const createServer = require('../src/index.js');
 const packageJson = require('../package.json');
+const {
+  generateRootCA,
+} = require('../src/cert-mgr.js');
 
 program
   .version(packageJson.version, '-v, --version')
@@ -63,6 +66,13 @@ program
     if (options.y) {
       genDefaultMockDir();
     }
+  });
+
+program
+  .command('gen-ca')
+  .description('generate root CA')
+  .action(() => {
+    generateRootCA();
   });
 
 program.parse(process.argv);

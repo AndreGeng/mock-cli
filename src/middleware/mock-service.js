@@ -5,7 +5,7 @@ const {
   promisify,
 } = require('util');
 const pathMatch = require('path-match')();
-const debug = require('debug')('middleware:mockjs');
+const debug = require('debug')('mockCli:mockService');
 
 const {
   sleep,
