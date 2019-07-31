@@ -1,5 +1,6 @@
-mock-cli
-========
+# mock-cli
+
+前端mock server, 用于json数据的mock
 
 ## 背景
 随着前后端的分离，前端需要一种简单的方法在联调之前，确定自身代码的正确性。前端需要mock后端的服务进行测试，采用mock服务有以下一些好处：
@@ -48,7 +49,7 @@ mock start
 
 #### mock服务匹配规则
 mock服务匹配有两种方式
-1. 基于mock.config.js映射规则。mock.config.js文件的格式如下
+1. 基于mock.config.js映射规则。mock.config.js文件的具体格式见下方『配置文件』一节
 2. 基于mock文件路径。
   如果mock文件的路径与请求的path匹配，mock文件会被返回。例如在mock文件夹下有mock/ajax/test.json文件, 当用户请求/ajax/test路径时，mock/ajax/test.json文件会被返回。
 ps: 映射规则的优先级要高于基于文件路径的匹配。
