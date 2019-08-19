@@ -20,6 +20,7 @@
     "debug": "^4.1.1",
     "koa": "^2.7.0",
     "koa-bodyparser": "^4.2.1",
+    "koa-logger": "^3.2.1",
     "koa-router": "^7.4.0",
     "minimatch": "^3.0.4",
     "mockjs": "^1.0.1-beta3",

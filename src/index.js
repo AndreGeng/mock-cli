@@ -1,27 +1,25 @@
-const Koa = require('koa');
-const path = require('path');
-const chokidar = require('chokidar');
-const bodyparser = require('koa-bodyparser');
-const http = require('http');
+const Koa = require("koa");
+const path = require("path");
+const chokidar = require("chokidar");
+const bodyparser = require("koa-bodyparser");
+const http = require("http");
+const logger = require("koa-logger");
 
-const mockService = require('./middleware/mock-service');
-const upstream = require('./middleware/upstream');
-const connectHandler = require('./connect-handler');
+const mockService = require("./middleware/mock-service");
+const upstream = require("./middleware/upstream");
+const connectHandler = require("./connect-handler");
 
 const loadMockConfig = (app, mockRoot) => {
-  const mockConfig = path.resolve(mockRoot, './mock.config.js');
+  const mockConfig = path.resolve(mockRoot, "./mock.config.js");
   delete require.cache[mockConfig];
   app.context.mockConf = require(mockConfig);
-  chokidar.watch(mockConfig)
-    .on('all', () => {
-      delete require.cache[mockConfig];
-      app.context.mockConf = require(mockConfig);
-    });
+  chokidar.watch(mockConfig).on("all", () => {
+    delete require.cache[mockConfig];
+    app.context.mockConf = require(mockConfig);
+  });
 };
 
-
-
-process.on('uncaughtException', function (err) {
+process.on("uncaughtException", function(err) {
   console.log(err);
 });
 
@@ -33,29 +31,26 @@ process.on('uncaughtException', function (err) {
  * @param {string} options.upstreamDomain the domain to forward the request to when no matching mock data is found
  *
  */
-module.exports = (options) => {
-  const {
-    mockRoot,
-    port,
-    upstreamDomain,
-  } = options;
-  
+module.exports = options => {
+  const { mockRoot, port, upstreamDomain } = options;
+
   const app = new Koa();
   // context注入mockConf对象
   loadMockConfig(app, mockRoot);
   app.context.appConfig = options;
+  app.use(logger());
   app.use(bodyparser());
   app.use(mockService(mockRoot));
   app.use(upstream(upstreamDomain));
   const listeningReporter = function() {
-    const {port, address} = this.address();
-    const protocol = this.addContext ? 'https' : 'http';
+    const { port, address } = this.address();
+    const protocol = this.addContext ? "https" : "http";
     console.log(`server started on ${protocol}://${address}:${port}`);
   };
-  const httpServer = http.createServer(app.callback())
+  const httpServer = http
+    .createServer(app.callback())
     .listen(port, listeningReporter);
   // 处理https -> http的场景
-  httpServer.on('connect', connectHandler(app.callback()));
+  httpServer.on("connect", connectHandler(app.callback()));
   return app;
 };
-
