@@ -4,19 +4,42 @@ const chokidar = require("chokidar");
 const bodyparser = require("koa-bodyparser");
 const http = require("http");
 const logger = require("koa-logger");
+const fs = require("fs");
 
 const mockService = require("./middleware/mock-service");
 const upstream = require("./middleware/upstream");
 const connectHandler = require("./connect-handler");
 
-const loadMockConfig = (app, mockRoot) => {
-  const mockConfig = path.resolve(mockRoot, "./mock.config.js");
+const loadMockConfig = (app, mockRoot, configFile) => {
+  const mockConfig = path.resolve(mockRoot, configFile);
   delete require.cache[mockConfig];
   app.context.mockConf = require(mockConfig);
   chokidar.watch(mockConfig).on("all", () => {
     delete require.cache[mockConfig];
     app.context.mockConf = require(mockConfig);
   });
+};
+
+const applyUserMiddlewares = (app, middlewarePath) => {
+  if (fs.existsSync(middlewarePath)) {
+    const middlewares = fs.readdirSync(middlewarePath);
+    if (middlewares && middlewares.length > 0) {
+      middlewares.forEach(filename => {
+        app.use(require(path.resolve(middlewarePath, filename)));
+      });
+      chokidar
+        .watch(middlewarePath, {
+          ignoreInitial: true
+        })
+        .on("all", type => {
+          if (type === "add" || type === "change" || type === "unlink") {
+            process.send({
+              type: "restart"
+            });
+          }
+        });
+    }
+  }
 };
 
 process.on("uncaughtException", function(err) {
@@ -29,16 +52,18 @@ process.on("uncaughtException", function(err) {
  * @param {number} options.port server start port
  * @param {number} options.timeout service respond time
  * @param {string} options.upstreamDomain the domain to forward the request to when no matching mock data is found
+ * @param {string} options.middlewarePath the path that contains middleware that need to be applied
  *
  */
-module.exports = options => {
-  const { mockRoot, port, upstreamDomain } = options;
+const createServer = options => {
+  const { mockRoot, port, upstreamDomain, configFile } = options;
 
   const app = new Koa();
   // context注入mockConf对象
-  loadMockConfig(app, mockRoot);
+  loadMockConfig(app, mockRoot, configFile);
   app.context.appConfig = options;
   app.use(logger());
+  applyUserMiddlewares(app, options.middlewarePath);
   app.use(bodyparser());
   app.use(mockService(mockRoot));
   app.use(upstream(upstreamDomain));
@@ -54,3 +79,9 @@ module.exports = options => {
   httpServer.on("connect", connectHandler(app.callback()));
   return app;
 };
+
+process.on("message", function(options) {
+  createServer(options);
+});
+
+module.exports = createServer;
