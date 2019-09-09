@@ -1,6 +1,6 @@
 {
   "name": "@andregeng/mock-cli",
-  "version": "1.2.4-beta.0",
+  "version": "1.2.4-beta.1",
   "description": "",
   "main": "./src/index.js",
   "scripts": {
@@ -36,5 +36,11 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/AndreGeng/mock-cli"
-  }
+  },
+  "keywords": [
+    "cli",
+    "mock",
+    "nodejs",
+    "mockjs"
+  ]
 }
