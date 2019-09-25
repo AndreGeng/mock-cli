@@ -60,12 +60,14 @@ ps: 映射规则的优先级要高于基于文件路径的匹配。
 配置样例如下:
 ```
 module.exports = {
-  '/ajax/exact-match': './exact-match.json',
-  'post /ajax/:name': {
-    path: './test.js',
+  "/ajax/exact-match": "./exact-match.json",
+  "get /ajax/test": "./test.js",
+  "get 2000 /ajax/test-withdelay": "./test.js",
+  "post /ajax/:name/test": {
+    path: "./test.js",
     timeout: 1000,
-    upstream: 'http://localhost:4000',
-  },
+    upstream: "http://localhost:4000"
+  }
 };
 ```
 mock服务的匹配规则基于[path-to-regexp](https://github.com/component/path-to-regexp), 对于匹配到的path, url中的参数，例如：:name，可以通过ctx.params来读取。
@@ -74,6 +76,12 @@ timeout: 用于指定mock服务的响应时间
 upstream: 用于当path指定的文件不存在时，请求被forward到的域名
 ps:
  如果所有接口的forward域名都是一样的，可以在命令行通过-u参数来指定。e.g. `mock start -u 'http://server'`
+
+  mock config 文件key的格式可以为以下的任意一种
+  1. [url]
+  2. [method url]
+  3. [timeout url]
+  3. [method timeout url]
 
 #### mock文件格式
 mock文件支持两种格式: json和js
