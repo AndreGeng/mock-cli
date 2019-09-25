@@ -11,6 +11,7 @@ const { generateRootCA } = require("../src/cert-mgr.js");
 const argv = process.execArgv.join();
 const isDebug = argv.includes("inspect");
 
+// https需要给每个域名生成不同的证书，所以这里server的创建统一采用fork的方式
 const child = cp.fork("../src/index.js", [], {
   cwd: __dirname,
   execArgv: isDebug ? ["--inspect-brk=0"] : []
