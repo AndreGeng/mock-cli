@@ -19,13 +19,29 @@ const getResFromJs = async (ctx, content) => {
   return res;
 };
 
+/**
+ * mock config 文件key的格式可以为以下的任意一种
+ * 1. [url]
+ * 2. [method, url]
+ * 3. [timeout, url]
+ * 3. [method, timeout, url]
+ */
 const getMockObj = (mockRoot, ctx) => {
   let mockObj = null;
   for (const [key, value] of Object.entries(ctx.mockConf)) {
-    let [method, url] = key.split(/\s+/);
-    if (!url) {
+    let [method, timeout, url] = key.split(/\s+/);
+    if (!timeout) {
       url = method;
       method = "all";
+      timeout = 0;
+    } else if (!url) {
+      url = timeout;
+      if (!isNaN(Number(method))) {
+        timeout = method;
+        method = "all";
+      } else {
+        timeout = 0;
+      }
     }
     if (method !== "all" && method !== ctx.method.toLowerCase()) {
       continue;
@@ -38,7 +54,8 @@ const getMockObj = (mockRoot, ctx) => {
         mockObj = value;
       } else if (typeof value === "string") {
         mockObj = {
-          path: value
+          path: value,
+          timeout
         };
       } else {
         debug("globalConfig rewrite format error");

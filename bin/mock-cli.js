@@ -79,7 +79,9 @@ const genDefaultMockDir = () => {
       .echo(
         `module.exports = {
     '/ajax/exact-match': './exact-match.json',
-    'post /ajax/:name': {
+    'get /ajax/test': './test.js',
+    'get 2000 /ajax/test-withdelay': './test.js',
+    'post /ajax/:name/test': {
       path: './test.js',
       timeout: 1000,
       upstream: 'http://localhost:4000',
