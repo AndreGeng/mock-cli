@@ -34,18 +34,18 @@ ps: upstream是当所有mock文件都匹配不到时，请求会被forward到ups
 ### 示例
 #### 基础应用
 
-以mock，http://fakedomain.com/ajax/foo 这个服务为例
+以mock，http://fakedomain.com/ajax/test 这个服务为例
 在项目根目录下执行下面的命令
 ```
 mock init -y
 mock start
 ```
 
-这时mock服务已经初始化成功，并运行在localhost:3000端口上, 在浏览器中访问http://localhost:3000/ajax/foo, 看到有json数据返回说明mock服务启动成功。
+这时mock服务已经初始化成功，并运行在localhost:3000端口上, 在浏览器中访问http://localhost:3000/ajax/test, 看到有json数据返回说明mock服务启动成功。
 
 `mock init -y`在项目根目录下新建了'mock'文件夹，
 `mock start` 启动了mock服务。 
-当请求http://localhost:3000/ajax/foo, 这个地址时，mock server会把mock/test.js的内容返回
+当请求http://localhost:3000/ajax/test, 这个地址时，mock server会把mock/test.js的内容返回
 
 #### mock服务匹配规则
 mock服务匹配有两种方式

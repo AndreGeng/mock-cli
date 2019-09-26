@@ -43,7 +43,7 @@ const getMockObj = (mockRoot, ctx) => {
         timeout = 0;
       }
     }
-    if (method !== "all" && method !== ctx.method.toLowerCase()) {
+    if (method !== "all" && method.toLowerCase() !== ctx.method.toLowerCase()) {
       continue;
     }
     const routeMatcher = pathMatch(url);
