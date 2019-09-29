@@ -44,6 +44,7 @@ const applyUserMiddlewares = (app, middlewarePath) => {
 
 process.on("uncaughtException", function(err) {
   console.log(err);
+  process.exit(1);
 });
 
 /**
