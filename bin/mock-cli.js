@@ -8,8 +8,20 @@ const chalk = require("chalk");
 const packageJson = require("../package.json");
 const { generateRootCA } = require("../src/cert-mgr.js");
 
-const argv = process.execArgv.join();
-const isDebug = argv.includes("inspect");
+const getChildDebugArgv = () => {
+  const debugArgv = process.execArgv.filter(
+    item => item.indexOf("inspect") !== -1
+  );
+  const isDebug = debugArgv.length > 0;
+  if (!isDebug) {
+    return [];
+  }
+  const childDebugPort = 9230;
+  if (debugArgv.indexOf("=") !== -1) {
+    return [debugArgv[0].replace(/\d+/, childDebugPort)];
+  }
+  return [`${debugArgv[0]}=${childDebugPort}`];
+};
 
 program
   .version(packageJson.version, "-v, --version")
@@ -37,10 +49,10 @@ const startServer = child => {
   const mockRoot = path.resolve(process.cwd(), program.root || "mock");
   child.on("message", m => {
     if (m && m.type === "restart") {
-      child.kill("SIGINT");
-      const newProcess = cp.fork("./src/index.js", [], {
+      child.kill("SIGKILL");
+      const newProcess = cp.fork("../src/index.js", [], {
         cwd: __dirname,
-        execArgv: isDebug ? ["--inspect-brk=0"] : []
+        execArgv: getChildDebugArgv()
       });
       startServer(newProcess);
       console.log(chalk.cyan("middleware change detected, server restarted"));
@@ -66,7 +78,7 @@ program
     // https需要给每个域名生成不同的证书，所以这里server的创建统一采用fork的方式
     const child = cp.fork("../src/index.js", [], {
       cwd: __dirname,
-      execArgv: isDebug ? ["--inspect-brk=0"] : []
+      execArgv: getChildDebugArgv()
     });
     startServer(child);
   });
