@@ -4,9 +4,12 @@ const program = require("commander");
 const shell = require("shelljs");
 const cp = require("child_process");
 const chalk = require("chalk");
+const chokidar = require("chokidar");
 
 const packageJson = require("../package.json");
 const { generateRootCA } = require("../src/cert-mgr.js");
+
+let preChild = null;
 
 const getChildDebugArgv = () => {
   const debugArgv = process.execArgv.filter(
@@ -46,18 +49,8 @@ program
   );
 
 const startServer = child => {
+  preChild = child;
   const mockRoot = path.resolve(process.cwd(), program.root || "mock");
-  child.on("message", m => {
-    if (m && m.type === "restart") {
-      child.kill("SIGKILL");
-      const newProcess = cp.fork("../src/index.js", [], {
-        cwd: __dirname,
-        execArgv: getChildDebugArgv()
-      });
-      startServer(newProcess);
-      console.log(chalk.cyan("middleware change detected, server restarted"));
-    }
-  });
   child.send({
     port: program.port || 3000,
     timeout: program.timeout || 0,
@@ -71,6 +64,29 @@ const startServer = child => {
     configFile: program.configFile || "mock.config.js"
   });
 };
+const restartChildIfNeeded = () => {
+  // middleware变更时，重启子线程
+  const middlewarePath = path.resolve(
+    process.cwd(),
+    program.root || "mock",
+    program.middlewarePath || "./middlewares"
+  );
+  chokidar
+    .watch(middlewarePath, {
+      ignoreInitial: true
+    })
+    .on("all", type => {
+      if (type === "add" || type === "change" || type === "unlink") {
+        preChild && preChild.kill("SIGKILL");
+        const newChild = cp.fork("../src/index.js", [], {
+          cwd: __dirname,
+          execArgv: getChildDebugArgv()
+        });
+        startServer(newChild);
+        console.log(chalk.cyan("middleware change detected, server restarted"));
+      }
+    });
+};
 program
   .command("start")
   .description("start mock server")
@@ -81,6 +97,7 @@ program
       execArgv: getChildDebugArgv()
     });
     startServer(child);
+    restartChildIfNeeded();
   });
 
 const genDefaultMockDir = () => {

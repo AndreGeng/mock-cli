@@ -27,17 +27,6 @@ const applyUserMiddlewares = (app, middlewarePath) => {
       middlewares.forEach(filename => {
         app.use(require(path.resolve(middlewarePath, filename)));
       });
-      chokidar
-        .watch(middlewarePath, {
-          ignoreInitial: true
-        })
-        .on("all", type => {
-          if (type === "add" || type === "change" || type === "unlink") {
-            process.send({
-              type: "restart"
-            });
-          }
-        });
     }
   }
 };
