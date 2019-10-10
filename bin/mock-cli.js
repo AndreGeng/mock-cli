@@ -48,31 +48,22 @@ program
     "path to folder that contains middlewares, relatives to mock root, default: ./middlewares"
   );
 
-const startServer = child => {
+const startServer = (child, { middlewarePath, mockRoot, configFile }) => {
   preChild = child;
-  const mockRoot = path.resolve(process.cwd(), program.root || "mock");
   child.send({
+    type: "start-server",
     port: program.port || 3000,
     timeout: program.timeout || 0,
     mockRoot,
     upstreamDomain: program.upstreamDomain,
-    middlewarePath: path.resolve(
-      process.cwd(),
-      program.root || "mock",
-      program.middlewarePath || "./middlewares"
-    ),
-    configFile: program.configFile || "mock.config.js"
+    middlewarePath,
+    configFile
   });
 };
-const restartChildIfNeeded = () => {
+const restartChildIfNeeded = ({ middlewarePath, mockRoot, configFile }) => {
   // middleware变更时，重启子线程
-  const middlewarePath = path.resolve(
-    process.cwd(),
-    program.root || "mock",
-    program.middlewarePath || "./middlewares"
-  );
   chokidar
-    .watch(middlewarePath, {
+    .watch([middlewarePath, path.resolve(mockRoot, configFile)], {
       ignoreInitial: true
     })
     .on("all", type => {
@@ -82,7 +73,11 @@ const restartChildIfNeeded = () => {
           cwd: __dirname,
           execArgv: getChildDebugArgv()
         });
-        startServer(newChild);
+        startServer(newChild, {
+          middlewarePath,
+          mockRoot,
+          configFile
+        });
         console.log(chalk.cyan("middleware change detected, server restarted"));
       }
     });
@@ -96,8 +91,20 @@ program
       cwd: __dirname,
       execArgv: getChildDebugArgv()
     });
-    startServer(child);
-    restartChildIfNeeded();
+    const middlewarePath = path.resolve(
+      process.cwd(),
+      program.root || "mock",
+      program.middlewarePath || "./middlewares"
+    );
+    const mockRoot = path.resolve(process.cwd(), program.root || "mock");
+    const configFile = program.configFile || "mock.config.js";
+    const options = {
+      middlewarePath,
+      mockRoot,
+      configFile
+    };
+    startServer(child, options);
+    restartChildIfNeeded(options);
   });
 
 const genDefaultMockDir = () => {

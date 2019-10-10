@@ -10,14 +10,12 @@ const mockService = require("./middleware/mock-service");
 const upstream = require("./middleware/upstream");
 const connectHandler = require("./connect-handler");
 
+let mockConfigWatcher = null;
+
 const loadMockConfig = (app, mockRoot, configFile) => {
   const mockConfig = path.resolve(mockRoot, configFile);
   delete require.cache[mockConfig];
   app.context.mockConf = require(mockConfig);
-  chokidar.watch(mockConfig).on("all", () => {
-    delete require.cache[mockConfig];
-    app.context.mockConf = require(mockConfig);
-  });
 };
 
 const applyUserMiddlewares = (app, middlewarePath) => {
@@ -71,7 +69,14 @@ const createServer = options => {
 };
 
 process.on("message", function(options) {
-  createServer(options);
+  if (options && options.type) {
+    switch (options.type) {
+      case "start-server": {
+        createServer(options);
+        break;
+      }
+    }
+  }
 });
 
 module.exports = createServer;
