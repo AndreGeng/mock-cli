@@ -86,7 +86,7 @@ program
   .command("start")
   .description("start mock server")
   .action(() => {
-    // https需要给每个域名生成不同的证书，所以这里server的创建统一采用fork的方式
+    // 采用fork形式来实现自动重启
     const child = cp.fork("../src/index.js", [], {
       cwd: __dirname,
       execArgv: getChildDebugArgv()

@@ -1,6 +1,5 @@
 const Koa = require("koa");
 const path = require("path");
-const chokidar = require("chokidar");
 const bodyparser = require("koa-bodyparser");
 const http = require("http");
 const logger = require("koa-logger");
@@ -9,8 +8,6 @@ const fs = require("fs");
 const mockService = require("./middleware/mock-service");
 const upstream = require("./middleware/upstream");
 const connectHandler = require("./connect-handler");
-
-let mockConfigWatcher = null;
 
 const loadMockConfig = (app, mockRoot, configFile) => {
   const mockConfig = path.resolve(mockRoot, configFile);
