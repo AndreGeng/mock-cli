@@ -99,9 +99,8 @@ ps:
 1. mock文件返回的json值遵循[mockjs](https://github.com/nuysoft/Mock/wiki)的数据格式，方便编写随机的mock数据。
 2. exports的值是一个函数时，koa的context会被传入，用户可以根据request的具体内容返回mock数据, 或者用于修改mock返回的header信息，etc.
 
-
-### 代理
-最后就可以通过charles/fiddler之类的工具来把想要mock的接口, 代理到mock server了。
+### 自定义middleware
+如果有需要，可以在`mock/middleware`文件夹下创建自定义中间件，mock server启动时会自动加载此文件夹下的所有中间件
 
 ### https服务mock
 如果需要mock https服务，需要安装rootCA证书。
@@ -111,3 +110,6 @@ mock gen-ca
 open ~/.mock-cli/certs
 ```
 2. 安装并信任certs文件夹下面的rootCA.crt。
+
+### 代理
+最后就可以通过charles/fiddler之类的工具来把想要mock的接口, 代理到mock server了。
