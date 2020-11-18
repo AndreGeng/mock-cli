@@ -113,3 +113,4 @@ open ~/.mock-cli/certs
 
 ### 代理
 最后就可以通过charles/fiddler之类的工具来把想要mock的接口, 代理到mock server了。
+ps: 用charles "map remote" 功能把请求代理到mock service时，建议勾选"Preserve host in header fields", 这样mock service可以自动把未提供mock的服务，forward到真实服务上去

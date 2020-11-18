@@ -5,6 +5,7 @@ const http = require("http");
 const logger = require("koa-logger");
 const fs = require("fs");
 
+const cors = require("./middleware/cors");
 const mockService = require("./middleware/mock-service");
 const upstream = require("./middleware/upstream");
 const connectHandler = require("./connect-handler");
@@ -50,6 +51,7 @@ const createServer = options => {
   app.use(logger());
   applyUserMiddlewares(app, options.middlewarePath);
   app.use(bodyparser());
+  app.use(cors);
   app.use(mockService(mockRoot));
   app.use(upstream(upstreamDomain));
   const listeningReporter = function() {

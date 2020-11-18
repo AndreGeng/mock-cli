@@ -5,13 +5,20 @@ const { isAbsoluteUrl } = require("../utils");
 
 module.exports = upstreamDomain => async (ctx, next) => {
   const mockObj = ctx.mockObj;
-  const targetDomain = (mockObj && mockObj.upstream) || upstreamDomain;
-  const requestHeaders = Object.assign({}, ctx.headers);
+  const targetDomain = (mockObj && mockObj.upstream) || upstreamDomain || ctx.origin;
+  const requestHeaders = Object.assign({}, ctx.headers, {
+    AVOID_LOOP: true,
+  });
   delete requestHeaders.host;
   delete requestHeaders["content-length"];
   debug("request headers: %o", requestHeaders);
   debug("request body: %O", ctx.request.body);
   let targetUrl;
+
+  if (ctx.headers.AVOID_LOOP) {
+    await next();
+    return;
+  }
 
   if (targetDomain) {
     targetUrl = `${targetDomain}${ctx.path}?${ctx.querystring}`;
@@ -26,7 +33,8 @@ module.exports = upstreamDomain => async (ctx, next) => {
       method: ctx.method,
       headers: requestHeaders,
       url: targetUrl,
-      data: ctx.request.body
+      data: ctx.request.body,
+      responseType: "stream"
     })
       .then(res => {
         debug(`succ:${ctx.url}:${ctx.method}`);
